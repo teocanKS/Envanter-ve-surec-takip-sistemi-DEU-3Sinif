@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Giriş • Doğu AŞ</title>
+  <!-- Personel Panel'in CSS'ini kullanıyoruz -->
+  <link rel="stylesheet" href="./login.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <form id="loginForm" class="panel login-panel">
+      <h1>Giriş</h1>
+      <input id="email" class="search" name="email" placeholder="E-posta" type="email" autocomplete="email" required />
+      <div class="pw-row">
+        <input id="password" class="search" name="password" placeholder="Parola" type="password" autocomplete="current-password" required />
+        <button class="icon-btn" type="button" id="btn-toggle-pw" title="Göster/Gizle">👁</button>
+      </div>
+      <div>
+        <button class="btn" type="submit">Giriş</button>
+      </div>
+      <p class="muted">Hesabın yok mu? <a href="#" id="lnk-register">Kayıt ol</a></p>
+      <p class="muted">Prototip: kimlik doğrulama tarayıcıda simüle edilir (DB yok).</p>
+    </form>
+    <dialog id="dlg-register">
+      <form method="dialog" id="form-register" class="panel">
+        <h1>Kayıt Ol</h1>
+        <input class="search" name="fullname" placeholder="Ad Soyad" required>
+        <input class="search" name="email" type="email" placeholder="E-posta" required>
+        <input class="search" name="phone" placeholder="Telefon">
+        <input class="search" name="password" type="password" placeholder="Şifre" required>
+        <div>
+          <button class="btn btn--ghost" type="button" onclick="this.closest('dialog').close()">Vazgeç</button>
+          <button class="btn" type="submit">Başvur</button>
+        </div>
+      </form>
+    </dialog>
+  </div>
+  <script src="./login.js" defer></script>
+</body>
+</html>
