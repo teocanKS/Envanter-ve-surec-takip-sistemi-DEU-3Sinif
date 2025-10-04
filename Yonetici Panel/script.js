@@ -1,5 +1,9 @@
 (() => {
-  const { $, renderStats, renderReorder, renderHistory, renderPlanned, renderJobs, applyHistorySort, getJSON, postJSON, exportTableToCSV, wireDialogCancel } = window.PanelShared;
+  const { $, renderStats, renderReorder, renderHistory, renderPlanned, renderJobs, applyHistorySort, getJSON, postJSON, exportTableToCSV, wireDialogCancel, Calendar } = window.PanelShared;
+  const notifyBtn = document.getElementById('btn-pending-notify');
+  const notifyBadge = document.getElementById('pending-notify-count');
+  const toastRegion = document.getElementById('toastRegion');
+  let lastPendingToastTs = 0;
   function enforceAccess(){
     const user = window.MockAuth?.enforceAccess({ allow: ['manager', 'admin'] });
     if (user) window.MockAuth.applyRoleUI(user);
@@ -13,11 +17,11 @@
       location.href = '../index.html';
     });
   }
-  function renderAlertsTable(rows, pendingRow){
+  function renderAlertsTable(rows, pendingRows){
     const tb = document.getElementById('alertsTable');
     if (!tb) return;
     const data = [];
-    if (pendingRow) data.push(pendingRow);
+    if (Array.isArray(pendingRows) && pendingRows.length) data.push(...pendingRows);
     if (rows && rows.length) data.push(...rows);
     if (!data.length){
       tb.innerHTML = `<tr><td colspan="5" class="muted">Uyarı bulunmuyor.</td></tr>`;
@@ -26,9 +30,9 @@
     const fmt = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
     tb.innerHTML = data.map(r => {
       if (r.pending) {
-        const latestLabel = r.latest ? fmt.format(new Date(r.latest)) : '-';
-        const countLabel = r.count > 1 ? `${r.count} bekleyen başvuru` : '1 bekleyen başvuru';
-        return `\n        <tr class="alerts-row--pending" data-goto-users="1">\n          <td>Yeni Başvuru</td>\n          <td>${countLabel}</td>\n          <td>−</td>\n          <td>${latestLabel}</td>\n          <td class="level level-pending">Onay Bekliyor</td>\n        </tr>`;
+        const latestLabel = r.createdAt ? fmt.format(new Date(r.createdAt)) : '-';
+        const who = r.fullname || r.email || 'Yeni kullanıcı';
+        return `\n        <tr class="alerts-row--pending" data-goto-users="1">\n          <td>Kullanıcı Başvurusu</td>\n          <td>${who}</td>\n          <td>−</td>\n          <td>${latestLabel}</td>\n          <td class="level level-pending">Yeni Başvuru</td>\n        </tr>`;
       }
       const lvlMatch = String(r.level || '').match(/^(\d+)/);
       const lvlKey = lvlMatch ? lvlMatch[1] : '';
@@ -87,45 +91,162 @@
     rows.sort((a,b)=> b.days - a.days);
     return rows;
   }
-  function computePendingRow(){
+  function pendingFreshInfo(){
     const pending = getPending();
-    if (!pending.length) return null;
     const ackTs = getPendingAck();
-    const fresh = pending.filter(p => {
-      const ts = Date.parse(p.createdAt || '') || 0;
-      return !ackTs || ts > ackTs;
-    });
-    if (!fresh.length) return null;
-    const latest = fresh.reduce((max, item) => {
+    let latestAny = 0;
+    let latestFresh = 0;
+    const fresh = [];
+    for (const item of pending){
       const ts = Date.parse(item.createdAt || '') || 0;
-      return ts > max ? ts : max;
-    }, 0);
-    return { pending: true, count: fresh.length, latest };
+      if (ts > latestAny) latestAny = ts;
+      if (!ackTs || ts > ackTs){
+        fresh.push({ ...item, _ts: ts });
+        if (ts > latestFresh) latestFresh = ts;
+      }
+    }
+    fresh.sort((a, b) => (b._ts || 0) - (a._ts || 0));
+    return { pending, fresh, latestAny, latestFresh, ackTs };
+  }
+  function buildPendingAlerts(info){
+    const data = info || pendingFreshInfo();
+    if (!data.fresh.length) return [];
+    return data.fresh.map(item => ({
+      pending: true,
+      fullname: item.fullname,
+      email: item.email,
+      createdAt: item.createdAt,
+    }));
+  }
+  function updatePendingNotice(info){
+    const data = info || pendingFreshInfo();
+    const count = data.fresh.length;
+    if (notifyBadge){
+      if (count > 0){
+        notifyBadge.textContent = String(count);
+        notifyBadge.hidden = false;
+      } else {
+        notifyBadge.textContent = '0';
+        notifyBadge.hidden = true;
+      }
+    }
+    if (notifyBtn){
+      const label = count > 0 ? `Bekleyen başvurular (${count})` : 'Bekleyen başvuru yok';
+      notifyBtn.classList.toggle('icon-btn--attention', count > 0);
+      notifyBtn.setAttribute('aria-label', label);
+      notifyBtn.title = label;
+    }
+    return data;
+  }
+  function showToast({ title, message, actionLabel, onAction, timeout = 6000 }){
+    if (!toastRegion) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    if (title){
+      const h = document.createElement('p');
+      h.className = 'toast__title';
+      h.textContent = title;
+      toast.appendChild(h);
+    }
+    if (message){
+      const body = document.createElement('p');
+      body.className = 'toast__body';
+      body.textContent = message;
+      toast.appendChild(body);
+    }
+    if (actionLabel){
+      const actions = document.createElement('div');
+      actions.className = 'toast__actions';
+      const btn = document.createElement('button');
+      btn.className = 'toast__btn';
+      btn.type = 'button';
+      btn.textContent = actionLabel;
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        onAction?.();
+        removeToast();
+      });
+      actions.appendChild(btn);
+      toast.appendChild(actions);
+    }
+    let auto;
+    function removeToast(){
+      if (auto){
+        clearTimeout(auto);
+        auto = null;
+      }
+      if (toast.parentElement){
+        toast.parentElement.removeChild(toast);
+      }
+    }
+    auto = setTimeout(removeToast, timeout);
+    toast.addEventListener('click', (ev) => {
+      if (ev.target.closest('.toast__btn')) return;
+      clearTimeout(auto);
+      removeToast();
+    });
+    toastRegion.appendChild(toast);
+  }
+  function maybeShowPendingToast(info){
+    if (!toastRegion) return;
+    const data = info || pendingFreshInfo();
+    if (!data.fresh.length) return;
+    const usersTab = document.getElementById('tab-users');
+    if (usersTab?.checked) return;
+    const latestFresh = data.latestFresh || 0;
+    if (latestFresh <= lastPendingToastTs) return;
+    const newest = data.fresh[0] || {};
+    const who = newest.fullname || newest.email || 'Yeni kullanıcı';
+    const count = data.fresh.length;
+    const message = count > 1 ? `${count} yeni başvuru var.` : `${who} başvuru gönderdi.`;
+    showToast({
+      title: 'Yeni Başvuru',
+      message,
+      actionLabel: 'Görüntüle',
+      onAction: () => switchToUsersTab()
+    });
+    lastPendingToastTs = latestFresh;
   }
   async function refreshAlerts(){
     let rows = [];
+    const info = pendingFreshInfo();
     try {
       rows = buildAlertsFromHistory(await getJSON('/api/history'));
     } catch (e) {
       console.warn('alerts', e);
     }
-    renderAlertsTable(rows, computePendingRow());
+    renderAlertsTable(rows, buildPendingAlerts(info));
+    updatePendingNotice(info);
+    maybeShowPendingToast(info);
   }
   function markPendingSeen(){
-    const pending = getPending();
-    const latest = pending.reduce((max, item) => {
-      const ts = Date.parse(item.createdAt || '') || 0;
-      return ts > max ? ts : max;
-    }, 0);
-    setPendingAck(latest || Date.now());
+    const info = pendingFreshInfo();
+    const latest = info.latestAny || Date.now();
+    setPendingAck(latest);
+    lastPendingToastTs = latest;
+    updatePendingNotice();
     refreshAlerts();
   }
   async function refreshAll(){
     try { renderStats(await getJSON('/api/stats')); } catch (e) { console.warn('stats', e); }
     try { renderReorder(await getJSON('/api/reorder')); } catch (e) { console.warn('reorder', e); }
     try { renderHistory(await getJSON('/api/history')); } catch (e) { console.warn('history', e); }
-    try { renderPlanned(await getJSON('/api/planned')); } catch (e) { console.warn('planned', e); }
-    try { renderJobs(await getJSON('/api/jobs')); } catch (e) { console.warn('jobs', e); }
+    try {
+      const planned = await getJSON('/api/planned');
+      renderPlanned(planned);
+      Calendar.setSource('planned', Calendar.eventsFromPlanned(planned));
+    } catch (e) {
+      Calendar.setSource('planned', []);
+      console.warn('planned', e);
+    }
+    try {
+      const jobs = await getJSON('/api/jobs');
+      renderJobs(jobs);
+      Calendar.setSource('jobs', Calendar.eventsFromJobs(jobs));
+    } catch (e) {
+      Calendar.setSource('jobs', []);
+      console.warn('jobs', e);
+    }
   }
   function exportReorderCSV(){
     if (!window.MockAuth?.isAdmin()) {
@@ -165,7 +286,15 @@
     if (submitter?.dataset?.cancel) return;
     e.preventDefault();
     const fd = new FormData(formPlan);
-    const payload = { title: fd.get('title')?.toString().trim(), bucket: fd.get('bucket') };
+    const payload = {
+      title: fd.get('title')?.toString().trim(),
+      bucket: fd.get('bucket'),
+      date: fd.get('date')?.toString()
+    };
+    if (!payload.date){
+      alert('Lütfen plan için tarih seçin.');
+      return;
+    }
     try {
       await postJSON('/api/planned', payload);
       dlgPlan?.close();
@@ -184,6 +313,7 @@
   function setUsersLS(arr){ lsSet('users', Array.isArray(arr)?arr:[]); }
   function getPendingAck(){ return Number(localStorage.getItem('pending_users_ack') || 0); }
   function setPendingAck(ts){ try{ localStorage.setItem('pending_users_ack', String(ts)); }catch{} }
+  lastPendingToastTs = getPendingAck();
   function renderPendingTable(){
     const tb = document.getElementById('pendingTable'); if(!tb) return;
     const rows = getPending();
@@ -214,7 +344,23 @@
   function refreshUsersUI(){
     renderPendingTable();
     renderUsersTable();
-    if (document.getElementById('tab-users')?.checked) markPendingSeen();
+    const usersTab = document.getElementById('tab-users');
+    if (usersTab?.checked) {
+      markPendingSeen();
+    } else {
+      updatePendingNotice();
+    }
+  }
+  function switchToUsersTab(){
+    const usersTab = document.getElementById('tab-users');
+    if (!usersTab) return;
+    const wasChecked = usersTab.checked;
+    usersTab.checked = true;
+    if (!wasChecked) {
+      usersTab.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      refreshUsersUI();
+    }
   }
   document.addEventListener('click', (e)=>{
     const t = e.target; if (!(t instanceof HTMLElement)) return;
@@ -294,20 +440,29 @@
   document.getElementById('alertsTable')?.addEventListener('click', (e) => {
     const row = e.target.closest('[data-goto-users]');
     if (!row) return;
-    const usersTab = document.getElementById('tab-users');
-    if (!usersTab) return;
-    usersTab.checked = true;
-    usersTab.dispatchEvent(new Event('change', { bubbles: true }));
+    switchToUsersTab();
+  });
+  notifyBtn?.addEventListener('click', () => {
+    switchToUsersTab();
   });
   document.querySelectorAll('input[name="tab"]').forEach(input => {
     input.addEventListener('change', () => {
       if (input.id === 'tab-users' && input.checked) refreshUsersUI();
     });
   });
+  window.addEventListener('storage', (event) => {
+    if (event.key !== 'pending_users') return;
+    const usersTabChecked = document.getElementById('tab-users')?.checked;
+    refreshUsersUI();
+    if (!usersTabChecked) {
+      refreshAlerts();
+    }
+  });
   window.addEventListener('load', async () => {
     enforceAccess();
     wireLogoutButton();
     wireDialogCancel();
+    Calendar.initAll();
     await refreshAll();
     refreshUsersUI();
     await refreshAlerts();

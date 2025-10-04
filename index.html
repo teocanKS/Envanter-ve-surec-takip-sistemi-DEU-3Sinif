@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Giriş • Doğu AŞ</title>
-  <!-- Personel Panel'in CSS'ini kullanıyoruz -->
   <link rel="stylesheet" href="./login.css" />
 </head>
 <body>
@@ -16,7 +15,7 @@
         <input id="password" class="search" name="password" placeholder="Parola" type="password" autocomplete="current-password" required />
         <button class="icon-btn" type="button" id="btn-toggle-pw" title="Göster/Gizle">👁</button>
       </div>
-      <div>
+      <div class="form-actions">
         <button class="btn" type="submit">Giriş</button>
       </div>
       <p class="muted">Hesabın yok mu? <a href="#" id="lnk-register">Kayıt ol</a></p>
@@ -29,8 +28,8 @@
         <input class="search" name="email" type="email" placeholder="E-posta" required>
         <input class="search" name="phone" placeholder="Telefon">
         <input class="search" name="password" type="password" placeholder="Şifre" required>
-        <div>
-          <button class="btn btn--ghost" type="button" onclick="this.closest('dialog').close()">Vazgeç</button>
+        <div class="form-actions">
+          <button class="btn btn--ghost" type="button" data-cancel="1">Vazgeç</button>
           <button class="btn" type="submit">Başvur</button>
         </div>
       </form>

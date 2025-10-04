@@ -60,6 +60,10 @@
           <h1 class="title title--users">Kullanıcı Onayları</h1>
           <div class="topbar__spacer"></div>
           <div class="topbar__actions">
+            <button class="icon-btn icon-btn--notify" id="btn-pending-notify" type="button" aria-label="Bekleyen başvuru yok" title="Bekleyen başvuru yok">
+              🔔
+              <span class="icon-btn__badge" id="pending-notify-count" aria-live="polite" hidden>0</span>
+            </button>
             <button class="btn btn--ghost" id="btn-logout" type="button">Çıkış</button>
           </div>
         </header>
@@ -174,6 +178,27 @@
           <section class="view" id="view-planlanan" aria-labelledby="title-planlanan">
             <h2 class="section-title" id="title-planlanan">Planlanan</h2>
             <p class="muted">Yaklaşan satınalmalar, üretim ve rezervasyonlar.</p>
+            <div class="panel panel--spaced" data-calendar>
+              <header class="panel__header calendar__header">
+                <div>
+                  <h3>Plan Takvimi</h3>
+                  <p class="muted calendar__subtitle">Günlere tıklayarak planlanan işleri görüntüleyin.</p>
+                </div>
+                <div class="calendar__controls">
+                  <button class="calendar__nav-btn" type="button" data-calendar-nav="-1" aria-label="Önceki ay">‹</button>
+                  <span class="calendar__label" data-calendar-label></span>
+                  <button class="calendar__nav-btn" type="button" data-calendar-nav="1" aria-label="Sonraki ay">›</button>
+                </div>
+              </header>
+              <div class="calendar__body">
+                <div class="calendar" data-calendar-grid role="grid"></div>
+                <div class="calendar__legend">
+                  <span><span class="calendar__indicator calendar__indicator--today"></span> Bugün</span>
+                  <span><span class="calendar__indicator calendar__indicator--event"></span> Planlanan iş</span>
+                </div>
+                <div class="calendar__details" data-calendar-details aria-live="polite"></div>
+              </div>
+            </div>
             <div class="panel">
               <header class="panel__header">
                 <h3>Yaklaşanlar</h3>
@@ -269,6 +294,7 @@
               <h3 class="dialog__title">Yeni Plan</h3>
               <div class="form-grid">
                 <input class="search" name="title" placeholder="Başlık (örn. PO #4520 – Rulman 6203)" required>
+                <input class="search" name="date" type="date" required>
                 <select class="search" name="bucket" required>
                   <option value="soon">Önümüzdeki 7 Gün</option>
                   <option value="month">Önümüzdeki 30 Gün</option>
@@ -284,6 +310,7 @@
         </section>
       </main>
     </div>
+    <div class="toast-region" id="toastRegion" aria-live="assertive" aria-atomic="true"></div>
     <script src="../session.js"></script>
     <script src="../shared.js"></script>
     <script src="script.js"></script>
