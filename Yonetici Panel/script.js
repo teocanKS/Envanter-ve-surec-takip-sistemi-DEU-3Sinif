@@ -1,89 +1,62 @@
-// public/script.js
 (() => {
-  const $ = (s, ctx = document) => ctx.querySelector(s);
-
-  // ---- Render helpers -------------------------------------------------------
-  function renderStats(stats) {
-    const cards = document.querySelectorAll('#view-stok .cards .card .card__value');
-    if (cards[0]) cards[0].textContent = stats.total_skus ?? '-';
-    if (cards[1]) cards[1].textContent = stats.in_stock_pct != null ? '%' + stats.in_stock_pct : '-';
-    if (cards[2]) cards[2].textContent = stats.critical ?? '-';
-    if (cards[3]) cards[3].textContent = stats.open_pos ?? '-';
+  const { $, renderStats, renderReorder, renderHistory, renderPlanned, renderJobs, applyHistorySort, getJSON, postJSON, exportTableToCSV, wireDialogCancel } = window.PanelShared;
+  function enforceAccess(){
+    const user = window.MockAuth?.enforceAccess({ allow: ['manager', 'admin'] });
+    if (user) window.MockAuth.applyRoleUI(user);
   }
-
-  function renderReorder(rows) {
-    const tbody = $('#reorderTable');
-    if (!tbody) return;
-    tbody.innerHTML = (rows || []).map(r => `
-      <tr>
-        <td>${r.sku_id || r.sku}</td>
-        <td>${r.item || r.name}</td>
-        <td>${r.on_hand ?? ''}</td>
-        <td>${r.min_qty ?? ''}</td>
-        <td>${r.supplier ?? ''}</td>
-        <td>
-          <span class="badge ${r.status === 'Kritik' ? 'badge--warn' : (r.status === 'Uygun' ? 'badge--ok' : '')}">${r.status ?? ''}</span>
-        </td>
-      </tr>`).join('');
+  function wireLogoutButton(){
+    const btn = document.getElementById('btn-logout');
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      window.MockAuth?.clearSession();
+      location.href = '../index.html';
+    });
   }
-
-  function renderHistory(items) {
-    const ul = $('#historyList');
-    if (!ul) return;
-    ul.innerHTML = (items || []).map(i => `
-      <li>
-        <span class="dot" aria-hidden="true"></span>
-        <div>
-          <div>${i.text}</div>
-          <div class="meta">${i.t}</div>
-        </div>
-      </li>`).join('');
-  }
-
-  // ---- Alerts (Bildirimler) -------------------------------------------------
-  function renderAlerts(rows){
+  function renderAlertsTable(rows, pendingRow){
     const tb = document.getElementById('alertsTable');
     if (!tb) return;
-    tb.innerHTML = (rows && rows.length) ? rows.map(r => {
-      const lvlKey = (r.level && String(r.level).startsWith('150'))
-        ? '150'
-        : (String(r.level).match(/^(\d+)/)?.[1] || '');
+    const data = [];
+    if (pendingRow) data.push(pendingRow);
+    if (rows && rows.length) data.push(...rows);
+    if (!data.length){
+      tb.innerHTML = `<tr><td colspan="5" class="muted">Uyarı bulunmuyor.</td></tr>`;
+      return;
+    }
+    const fmt = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
+    tb.innerHTML = data.map(r => {
+      if (r.pending) {
+        const latestLabel = r.latest ? fmt.format(new Date(r.latest)) : '-';
+        const countLabel = r.count > 1 ? `${r.count} bekleyen başvuru` : '1 bekleyen başvuru';
+        return `\n        <tr class="alerts-row--pending" data-goto-users="1">\n          <td>Yeni Başvuru</td>\n          <td>${countLabel}</td>\n          <td>−</td>\n          <td>${latestLabel}</td>\n          <td class="level level-pending">Onay Bekliyor</td>\n        </tr>`;
+      }
+      const lvlMatch = String(r.level || '').match(/^(\d+)/);
+      const lvlKey = lvlMatch ? lvlMatch[1] : '';
+      const lvlClass = lvlKey ? `level level-${lvlKey}` : 'level';
       return `
       <tr>
         <td>${r.company || '-'}</td>
         <td>${r.product || '-'}</td>
         <td>${r.days}</td>
         <td>${r.last || '-'}</td>
-        <td class="level ${lvlKey ? 'level-' + lvlKey : ''}">
-          <span class="level ${lvlKey ? 'level-' + lvlKey : ''}">${r.level}</span>
-        </td>
+        <td class="${lvlClass}">${r.level}</td>
       </tr>`;
-    }).join('') : `<tr><td colspan="5" class="muted">Uyarı bulunmuyor.</td></tr>`;
+    }).join('');
   }
-
-  function daysBetween(d){
-    const ms = Date.now() - new Date(String(d).replace(' ', 'T')).getTime();
-    return Math.max(0, Math.floor(ms / (1000*60*60*24)));
+  function daysBetween(value){
+    const ms = Date.now() - new Date(String(value).replace(' ', 'T')).getTime();
+    return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
   }
-
   function parseCompanyProduct(text){
     if (!text) return { company: '', product: '' };
     const t = String(text).trim();
-    // 1) Etiketli desenler ("Şirket: X", "Ürün: Y")
     const mC = t.match(/(?:Şirket|Firma|Company)\s*:\s*([^\-|•|\|]+)/i);
     const mP = t.match(/(?:Ürün|Product)\s*:\s*([^\-|•|\|]+)/i);
-    if (mC || mP){
-      return { company: (mC?.[1]||'').trim(), product: (mP?.[1]||'').trim() };
-    }
-    // 2) Ayraçlı kısa format: "Firma • Ürün • ..." veya "Firma - Ürün - ..."
+    if (mC || mP) return { company: (mC?.[1] || '').trim(), product: (mP?.[1] || '').trim() };
     const parts = t.split(/\s*[•\-|—]\s*/).map(s => s.trim()).filter(Boolean);
-    if (parts.length >= 2){
-      return { company: parts[0], product: parts[1] };
-    }
-    // 3) Fallback: ilk kelime(ler) firmaya yaz, ürün boş kalsın
+    if (parts.length >= 2) return { company: parts[0], product: parts[1] };
     return { company: parts[0] || t, product: '' };
   }
-
   function levelFromDays(d){
     if (d >= 150) return '150+ gün';
     if (d >= 120) return '120+ gün';
@@ -92,165 +65,83 @@
     if (d >= 30)  return '30+ gün';
     return '';
   }
-
   function buildAlertsFromHistory(history){
     if (!Array.isArray(history)) return [];
-    // Son alışverişe göre şirket/ürün kırılımı
-    const lastMap = new Map(); // key: company||'?' + '|' + product||'?', val: {last, company, product}
+    const lastMap = new Map();
     for (const item of history){
       const { company, product } = parseCompanyProduct(item.text);
-      const key = `${company || '?'}|${product || '?'}`;
+      const key = `${company || '?' }|${product || '?'}`;
       const last = item.t;
-      if (!lastMap.has(key) || new Date(String(last).replace(' ','T')) > new Date(String(lastMap.get(key).last).replace(' ','T'))){
-        lastMap.set(key, { company, product, last });
-      }
+      const lastTs = new Date(String(last).replace(' ','T')).getTime();
+      const stored = lastMap.get(key);
+      const storedTs = stored ? new Date(String(stored.last).replace(' ','T')).getTime() : 0;
+      if (!stored || lastTs > storedTs) lastMap.set(key, { company, product, last });
     }
     const rows = [];
-    for (const v of lastMap.values()){
-      const d = daysBetween(v.last);
+    for (const value of lastMap.values()){
+      const d = daysBetween(value.last);
       const lvl = levelFromDays(d);
-      if (!lvl) continue; // 30 gün altını bildirim yapma
-      rows.push({ company: v.company, product: v.product, days: d, last: v.last, level: lvl });
+      if (!lvl) continue;
+      rows.push({ company: value.company, product: value.product, days: d, last: value.last, level: lvl });
     }
-    // En kritik üstte görünsün
     rows.sort((a,b)=> b.days - a.days);
     return rows;
   }
-
+  function computePendingRow(){
+    const pending = getPending();
+    if (!pending.length) return null;
+    const ackTs = getPendingAck();
+    const fresh = pending.filter(p => {
+      const ts = Date.parse(p.createdAt || '') || 0;
+      return !ackTs || ts > ackTs;
+    });
+    if (!fresh.length) return null;
+    const latest = fresh.reduce((max, item) => {
+      const ts = Date.parse(item.createdAt || '') || 0;
+      return ts > max ? ts : max;
+    }, 0);
+    return { pending: true, count: fresh.length, latest };
+  }
   async function refreshAlerts(){
-    try{
-      const hist = await getJSON('/api/history');
-      renderAlerts(buildAlertsFromHistory(hist));
-    }catch(e){ console.warn('alerts', e); }
+    let rows = [];
+    try {
+      rows = buildAlertsFromHistory(await getJSON('/api/history'));
+    } catch (e) {
+      console.warn('alerts', e);
+    }
+    renderAlertsTable(rows, computePendingRow());
   }
-
-  // Geçmiş listesine sıralama uygula (form değerlerine göre)
-  function applyHistorySort(list, fd){
-    const by  = (fd.get('sort_by')  || 'date').toString();
-    const dir = (fd.get('sort_dir') || 'desc').toString();
-    const sign = dir === 'asc' ? 1 : -1;
-
-    const parseDate = (s) => {
-      if (!s) return 0;
-      const d = new Date(String(s).replace(' ', 'T'));
-      return d.getTime() || 0;
-    };
-    const parsePrice = (txt) => {
-      if (!txt) return 0;
-      const m = String(txt).match(/([0-9]{1,3}(?:[\.\s][0-9]{3})*(?:,[0-9]+)?|[0-9]+(?:\.[0-9]+)?)/);
-      if (!m) return 0;
-      let n = m[1].replace(/\s/g,'');
-      if (/,/.test(n) && /\./.test(n)) {
-        n = n.replace(/\./g, '').replace(',', '.');
-      } else if (/,/.test(n) && !/\./.test(n)) {
-        n = n.replace(',', '.');
-      } else {
-        n = n.replace(/\./g, '');
-      }
-      const v = parseFloat(n);
-      return isNaN(v) ? 0 : v;
-    };
-
-    const getProductKey = (txt) => String(txt||'').toLocaleLowerCase('tr-TR');
-
-    const arr = Array.isArray(list) ? list.slice() : [];
-    arr.sort((a,b)=>{
-      if (by === 'date')  return (parseDate(a.t)   - parseDate(b.t))   * sign;
-      if (by === 'price') return (parsePrice(a.text) - parsePrice(b.text)) * sign;
-      if (by === 'product'){
-        const aa = getProductKey(a.text), bb = getProductKey(b.text);
-        return (aa < bb ? -1 : aa > bb ? 1 : 0) * sign;
-      }
-      return 0;
-    });
-    return arr;
+  function markPendingSeen(){
+    const pending = getPending();
+    const latest = pending.reduce((max, item) => {
+      const ts = Date.parse(item.createdAt || '') || 0;
+      return ts > max ? ts : max;
+    }, 0);
+    setPendingAck(latest || Date.now());
+    refreshAlerts();
   }
-
-  function renderPlanned(grouped) {
-    const map = { soon: '[data-col="soon"]', month: '[data-col="month"]', backlog: '[data-col="backlog"]' };
-    Object.keys(map).forEach(k => {
-      const ul = document.querySelector('#view-planlanan ' + map[k]);
-      if (ul) ul.innerHTML = (grouped?.[k] || []).map(t => `<li class="kanban__item">${t}</li>`).join('');
-    });
-  }
-
-  function renderJobs(items) {
-    const grid = $('#jobsGrid');
-    if (!grid) return;
-    grid.innerHTML = (items || []).map(j => `
-      <article class="job">
-        <header class="job__head">
-          <strong>${j.id}</strong>
-          <span class="badge ${j.status === 'Riskli' ? 'badge--warn' : 'badge--ok'}">${j.status}</span>
-        </header>
-        <div class="job__title">${j.title}</div>
-        <div class="job__meta"><span>Sorumlu: ${j.owner ?? '-'}</span><span>ETA: ${j.eta ?? '-'}</span></div>
-      </article>`).join('');
-  }
-
-  // ---- Fetch helpers --------------------------------------------------------
-  async function getJSON(url) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(await r.text());
-    return r.json();
-  }
-  async function postJSON(url, body) {
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (!r.ok) throw new Error(await r.text());
-    return r.json().catch(() => ({}));
-  }
-
-  async function refreshAll() {
+  async function refreshAll(){
     try { renderStats(await getJSON('/api/stats')); } catch (e) { console.warn('stats', e); }
     try { renderReorder(await getJSON('/api/reorder')); } catch (e) { console.warn('reorder', e); }
     try { renderHistory(await getJSON('/api/history')); } catch (e) { console.warn('history', e); }
     try { renderPlanned(await getJSON('/api/planned')); } catch (e) { console.warn('planned', e); }
     try { renderJobs(await getJSON('/api/jobs')); } catch (e) { console.warn('jobs', e); }
   }
-
-  // ---- CSV export -----------------------------------------------------------
-  function exportReorderCSV() {
-    // Yalnızca ADMIN
+  function exportReorderCSV(){
     if (!window.MockAuth?.isAdmin()) {
       alert('Bu işlem yalnızca ADMIN için izinli.');
       return;
     }
-    const rows = Array.from(document.querySelectorAll('#reorderTable tr')).map(tr =>
-      Array.from(tr.children).map(td => '"' + (td.textContent || '').replaceAll('"', '""') + '"').join(',')
-    );
-    if (!rows.length) {
+    if (!exportTableToCSV({ rowSelector: '#reorderTable tr', header: 'SKU,Ürün,Elde,Asgari,Tedarikçi,Durum', filename: 'reorder.csv', skipEmpty: true })) {
       alert('Dışa aktarılacak satır bulunamadı.');
-      return;
     }
-    const csv = ['SKU,Ürün,Elde,Asgari,Tedarikçi,Durum'].concat(rows).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'reorder.csv';
-    document.body.appendChild(a); a.click(); a.remove();
   }
-
-  // ---- Dialogs --------------------------------------------------------------
   const dlgAdd = $('#dlg-add-sku');
   const dlgPlan = $('#dlg-new-plan');
-
-  // Cancel buttons: her zaman kapat (validasyon yok)
-  function wireCancelButtons() {
-    document.querySelectorAll('dialog [data-cancel]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const d = btn.closest('dialog');
-        if (d?.open) d.close();
-      });
-    });
-  }
-
-  // Ürün ekle formu
   const formAdd = $('#form-add-sku');
   formAdd?.addEventListener('submit', async (e) => {
     const submitter = e.submitter || document.activeElement;
-    if (submitter?.dataset?.cancel) return; // vazgeç -> doğal kapanış
+    if (submitter?.dataset?.cancel) return;
     e.preventDefault();
     const fd = new FormData(formAdd);
     const payload = {
@@ -268,12 +159,10 @@
       alert('Hata: ' + err.message);
     }
   });
-
-  // Yeni Plan formu
   const formPlan = $('#form-new-plan');
   formPlan?.addEventListener('submit', async (e) => {
     const submitter = e.submitter || document.activeElement;
-    if (submitter?.dataset?.cancel) return; // vazgeç -> doğal kapanış
+    if (submitter?.dataset?.cancel) return;
     e.preventDefault();
     const fd = new FormData(formPlan);
     const payload = { title: fd.get('title')?.toString().trim(), bucket: fd.get('bucket') };
@@ -285,18 +174,16 @@
       alert('Hata: ' + err.message);
     }
   });
-
-  // ================= Kullanıcı Onayları & Arama ============================
   function lsGet(key, def){
     try{ const v = JSON.parse(localStorage.getItem(key)||'null'); return (v==null?def:v); }catch{ return def; }
   }
-  function lsSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{}
-  }
+  function lsSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} }
   function getPending(){ const v = lsGet('pending_users', []); return Array.isArray(v)? v : []; }
   function setPending(arr){ lsSet('pending_users', Array.isArray(arr)?arr:[]); }
   function getUsersLS(){ const v = lsGet('users', []); return Array.isArray(v)? v : []; }
   function setUsersLS(arr){ lsSet('users', Array.isArray(arr)?arr:[]); }
-
+  function getPendingAck(){ return Number(localStorage.getItem('pending_users_ack') || 0); }
+  function setPendingAck(ts){ try{ localStorage.setItem('pending_users_ack', String(ts)); }catch{} }
   function renderPendingTable(){
     const tb = document.getElementById('pendingTable'); if(!tb) return;
     const rows = getPending();
@@ -306,13 +193,12 @@
         <td>${r.email||'-'}</td>
         <td>${r.phone||'-'}</td>
         <td>${(r.createdAt||'').replace('T',' ').replace('Z','')}</td>
-        <td style="text-align:right">
+        <td class="text-right">
           <button class="btn" data-approve="${r.email}">Onayla</button>
           <button class="btn btn--ghost" data-reject="${r.email}">Reddet</button>
         </td>
       </tr>`).join('') : `<tr><td colspan="5" class="muted">Bekleyen başvuru yok.</td></tr>`;
   }
-
   function renderUsersTable(){
     const tb = document.getElementById('usersTable'); if(!tb) return;
     const users = getUsersLS();
@@ -320,18 +206,16 @@
       <tr>
         <td>${u.email}</td>
         <td>${u.role||'viewer'}</td>
-        <td style="text-align:right">
+        <td class="text-right">
           <button class="btn btn--ghost" data-remove="${u.email}">Sil/Çıkar</button>
         </td>
       </tr>`).join('') : `<tr><td colspan="3" class="muted">Kayıtlı kullanıcı yok.</td></tr>`;
   }
-
   function refreshUsersUI(){
     renderPendingTable();
     renderUsersTable();
+    if (document.getElementById('tab-users')?.checked) markPendingSeen();
   }
-
-  // Delegated actions: approve / reject / remove
   document.addEventListener('click', (e)=>{
     const t = e.target; if (!(t instanceof HTMLElement)) return;
     const emailApprove = t.getAttribute('data-approve');
@@ -360,22 +244,17 @@
       setUsersLS(left); refreshUsersUI(); alert('Kullanıcı silindi.');
     }
   });
-
   document.getElementById('btn-refresh-users')?.addEventListener('click', refreshUsersUI);
-
-  // ---- Buttons --------------------------------------------------------------
   document.addEventListener('click', (e) => {
     if (e.target.id === 'btn-export') exportReorderCSV();
     if (e.target.id === 'btn-add-sku' && dlgAdd?.showModal) dlgAdd.showModal();
     if (e.target.id === 'btn-new-plan' && dlgPlan?.showModal) dlgPlan.showModal();
   });
-
-  // Geçmiş filtreleri
   const btnFilter = $('#btn-history-filter');
   const bar = $('#historyFilterBar');
   btnFilter?.addEventListener('click', () => {
     if (!bar) return;
-    bar.style.display = (bar.style.display === 'none' || !bar.style.display) ? 'block' : 'none';
+    bar.toggleAttribute('hidden');
   });
   $('#btn-history-clear')?.addEventListener('click', async () => {
     document.getElementById('historyFilterForm').reset();
@@ -412,12 +291,25 @@
       }
     } catch (err) { alert('Hata: ' + err.message); }
   });
-
-  // İlk yükleme
+  document.getElementById('alertsTable')?.addEventListener('click', (e) => {
+    const row = e.target.closest('[data-goto-users]');
+    if (!row) return;
+    const usersTab = document.getElementById('tab-users');
+    if (!usersTab) return;
+    usersTab.checked = true;
+    usersTab.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  document.querySelectorAll('input[name="tab"]').forEach(input => {
+    input.addEventListener('change', () => {
+      if (input.id === 'tab-users' && input.checked) refreshUsersUI();
+    });
+  });
   window.addEventListener('load', async () => {
-    wireCancelButtons();
+    enforceAccess();
+    wireLogoutButton();
+    wireDialogCancel();
     await refreshAll();
     refreshUsersUI();
-    refreshAlerts();
+    await refreshAlerts();
   });
 })();

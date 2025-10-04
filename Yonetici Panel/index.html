@@ -12,23 +12,16 @@
   </head>
   <body>
     <div class="app">
-
-      <!-- Mobil menü için çekmece anahtarı (JS yok) -->
-
-      <!-- Sekmeler (JS yok: aktif durum izleme) -->
       <input type="radio" name="tab" id="tab-stok" class="visually-hidden" checked />
       <input type="radio" name="tab" id="tab-gecmis" class="visually-hidden" />
       <input type="radio" name="tab" id="tab-planlanan" class="visually-hidden" />
       <input type="radio" name="tab" id="tab-aktif" class="visually-hidden" />
       <input type="radio" name="tab" id="tab-users" class="visually-hidden" />
-
-      <!-- Sidebar -->
       <aside class="sidebar" id="sidebar" aria-label="Birincil">
         <div class="brand">
           <span class="brand__logo" aria-hidden="true">◆</span>
           <span class="brand__name">Doğu AŞ</span>
         </div>
-
         <nav class="nav" aria-label="Bölümler">
           <label class="nav__item" for="tab-stok">
             <span class="nav__icon" aria-hidden="true">📦</span>
@@ -53,66 +46,49 @@
             <span class="nav__label">Kullanıcı Onayları</span>
           </label>
         </nav>
-
         <div class="sidebar__footer">
           <small>v0.1 • Vanilla</small>
         </div>
       </aside>
-
-      <!-- Main -->
       <main class="main" role="main">
         <header class="topbar">
-          <!-- Mobil menü düğmesi -->
           <button class="icon-btn" type="button" aria-label="Menü" aria-controls="sidebar">☰</button>
-
-          <!-- Başlık (aktif sekmeye göre görünür) -->
           <h1 class="title title--stok">Stok Durumu</h1>
           <h1 class="title title--gecmis">Geçmiş</h1>
           <h1 class="title title--planlanan">Planlanan</h1>
           <h1 class="title title--aktif">Aktif İşler</h1>
           <h1 class="title title--users">Kullanıcı Onayları</h1>
-
           <div class="topbar__spacer"></div>
-
           <div class="topbar__actions">
             <button class="btn btn--ghost" id="btn-logout" type="button">Çıkış</button>
           </div>
         </header>
-
-        <!-- İçerik -->
         <section class="content">
-
-          <!-- Stok Durumu -->
           <section class="view" id="view-stok" aria-labelledby="title-stok">
             <h2 class="sr-only" id="title-stok">Stok Durumu</h2>
-
             <div class="cards">
               <article class="card">
                 <header class="card__header">Toplam SKU</header>
                 <div class="card__value">1.248</div>
                 <footer class="card__footer">%2,3 geçen haftaya göre</footer>
               </article>
-
               <article class="card">
                 <header class="card__header">Stokta</header>
                 <div class="card__value">%93</div>
                 <footer class="card__footer">Yeniden sipariş: 17 kalem</footer>
               </article>
-
               <article class="card">
                 <header class="card__header">Düşük / Kritik</header>
                 <div class="card__value">8</div>
                 <footer class="card__footer">Otomatik uyarılar açık</footer>
               </article>
-
               <article class="card">
                 <header class="card__header">Açık Satınalmalar</header>
                 <div class="card__value">12</div>
                 <footer class="card__footer">ETA: 2–7 gün</footer>
               </article>
             </div>
-
-            <div class="panel" id="alertsPanel" style="margin-bottom:14px">
+            <div class="panel panel--spaced" id="alertsPanel">
               <header class="panel__header">
                 <h3>Bildirimler</h3>
                 <div class="panel__actions">
@@ -134,7 +110,6 @@
                 </table>
               </div>
             </div>
-
             <div class="panel">
               <header class="panel__header">
                 <h3>Yeniden Sipariş Kuyruğu</h3>
@@ -143,7 +118,6 @@
                   <button class="btn btn--ghost" id="btn-add-sku" type="button">Ürün ekle</button>
                 </div>
               </header>
-
               <div class="table-wrap">
                 <table class="table" aria-label="Yeniden sipariş kuyruğu">
                   <thead>
@@ -162,12 +136,9 @@
               </div>
             </div>
           </section>
-
-          <!-- Geçmiş -->
           <section class="view" id="view-gecmis" aria-labelledby="title-gecmis">
             <h2 class="section-title" id="title-gecmis">Geçmiş</h2>
             <p class="muted">Son hareketler ve stok düzeltmeleri.</p>
-
             <div class="panel">
               <header class="panel__header">
                 <h3>Son 7 Gün</h3>
@@ -175,21 +146,20 @@
                   <button class="btn btn--ghost" id="btn-history-filter" type="button">Filtrele</button>
                 </div>
               </header>
-              <div id="historyFilterBar" class="panel__filter" style="display:none; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,.06)">
-                <form id="historyFilterForm" class="filter-row" style="display:flex; gap:10px; flex-wrap:wrap">
-                  <input type="text" name="company" placeholder="Şirket / Tedarikçi (örn. Adalı Holding)" class="search" style="min-width:240px">
-                  <input type="text" name="item" placeholder="Ürün/anahtar kelime (örn. Demir)" class="search" style="min-width:200px">
+              <div id="historyFilterBar" class="panel__filter" hidden>
+                <form id="historyFilterForm" class="filter-row">
+                  <input type="text" name="company" placeholder="Şirket / Tedarikçi (örn. Adalı Holding)" class="search u-minw-240">
+                  <input type="text" name="item" placeholder="Ürün/anahtar kelime (örn. Demir)" class="search u-minw-200">
                   <input type="date" name="from" class="search">
                   <input type="date" name="to" class="search">
                   <label for="sort_by" class="sr-only">Sırala</label>
-                  <select id="sort_by" class="search" name="sort_by" style="min-width:160px" aria-label="Sırala">
+                  <select id="sort_by" class="search u-minw-160" name="sort_by" aria-label="Sırala">
                     <option value="date">Tarihe göre</option>
                     <option value="price">Fiyata göre</option>
                     <option value="product">Ürüne göre</option>
                   </select>
-
                   <label for="sort_dir" class="sr-only">Yön</label>
-                  <select id="sort_dir" class="search" name="sort_dir" style="min-width:120px" aria-label="Sıralama yönü">
+                  <select id="sort_dir" class="search u-minw-120" name="sort_dir" aria-label="Sıralama yönü">
                     <option value="desc">Azalan</option>
                     <option value="asc">Artan</option>
                   </select>
@@ -197,17 +167,13 @@
                   <button class="btn btn--ghost" id="btn-history-clear" type="button">Temizle</button>
                 </form>
               </div>
-
               <ul class="timeline" id="historyList">
               </ul>
             </div>
           </section>
-
-          <!-- Planlanan -->
           <section class="view" id="view-planlanan" aria-labelledby="title-planlanan">
             <h2 class="section-title" id="title-planlanan">Planlanan</h2>
             <p class="muted">Yaklaşan satınalmalar, üretim ve rezervasyonlar.</p>
-
             <div class="panel">
               <header class="panel__header">
                 <h3>Yaklaşanlar</h3>
@@ -215,7 +181,6 @@
                   <button class="btn" type="button" id="btn-new-plan">Yeni Plan</button>
                 </div>
               </header>
-
               <div class="kanban">
                 <div class="kanban__col">
                   <h4>Önümüzdeki 7 Gün</h4>
@@ -232,21 +197,15 @@
               </div>
             </div>
           </section>
-
-          <!-- Aktif İşler -->
           <section class="view" id="view-aktif" aria-labelledby="title-aktif">
             <h2 class="section-title" id="title-aktif">Aktif İşler</h2>
             <p class="muted">Devam eden iş emirleri ve görevler.</p>
-
             <div class="grid" id="jobsGrid"></div>
           </section>
-
-          <!-- Kullanıcı Onayları -->
           <section class="view" id="view-users" aria-labelledby="title-users">
             <h2 class="section-title" id="title-users">Kullanıcı Onayları</h2>
             <p class="muted">Bekleyen başvurular ve mevcut kullanıcılar.</p>
-
-            <div class="panel" style="margin-bottom:14px">
+            <div class="panel panel--spaced">
               <header class="panel__header">
                 <h3>Bekleyen Başvurular</h3>
                 <div class="panel__actions">
@@ -261,14 +220,13 @@
                       <th>E-posta</th>
                       <th>Telefon</th>
                       <th>Başvuru Tarihi</th>
-                      <th style="text-align:right">İşlem</th>
+                      <th class="text-right">İşlem</th>
                     </tr>
                   </thead>
                   <tbody id="pendingTable"></tbody>
                 </table>
               </div>
             </div>
-
             <div class="panel">
               <header class="panel__header">
                 <h3>Mevcut Kullanıcılar</h3>
@@ -282,7 +240,7 @@
                     <tr>
                       <th>E-posta</th>
                       <th>Rol</th>
-                      <th style="text-align:right">İşlem</th>
+                      <th class="text-right">İşlem</th>
                     </tr>
                   </thead>
                   <tbody id="usersTable"></tbody>
@@ -290,28 +248,26 @@
               </div>
             </div>
           </section>
-
           <dialog id="dlg-add-sku">
-            <form method="dialog" id="form-add-sku" style="min-width:320px">
-              <h3 style="margin:0 0 8px">Ürün Ekle</h3>
-              <div style="display:grid; gap:8px">
+            <form method="dialog" id="form-add-sku" class="modal-form">
+              <h3 class="dialog__title">Ürün Ekle</h3>
+              <div class="form-grid">
                 <input class="search" name="sku_id" placeholder="SKU (örn. A-1002)" required>
                 <input class="search" name="name" placeholder="Ürün adı (örn. Demir Çubuk 10 mm)" required>
                 <input class="search" name="min_qty" placeholder="Asgari stok" type="number" min="0" required>
                 <input class="search" name="supplier" placeholder="Tedarikçi (örn. Adalı Holding)">
                 <input class="search" name="initial_qty" placeholder="Başlangıç miktarı (opsiyonel)" type="number">
               </div>
-              <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
-                <button class="btn btn--ghost" type="submit" data-cancel="1" formnovalidate formmethod="dialog" onclick="this.closest('dialog').close()">Vazgeç</button>
+              <div class="form-actions">
+                <button class="btn btn--ghost" type="submit" data-cancel="1" formnovalidate formmethod="dialog">Vazgeç</button>
                 <button class="btn" value="submit" type="submit">Kaydet</button>
               </div>
             </form>
           </dialog>
-
           <dialog id="dlg-new-plan">
-            <form method="dialog" id="form-new-plan" style="min-width:320px">
-              <h3 style="margin:0 0 8px">Yeni Plan</h3>
-              <div style="display:grid; gap:8px">
+            <form method="dialog" id="form-new-plan" class="modal-form">
+              <h3 class="dialog__title">Yeni Plan</h3>
+              <div class="form-grid">
                 <input class="search" name="title" placeholder="Başlık (örn. PO #4520 – Rulman 6203)" required>
                 <select class="search" name="bucket" required>
                   <option value="soon">Önümüzdeki 7 Gün</option>
@@ -319,8 +275,8 @@
                   <option value="backlog">Bekleme</option>
                 </select>
               </div>
-              <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
-                <button class="btn btn--ghost" type="submit" data-cancel="1" formnovalidate formmethod="dialog" onclick="this.closest('dialog').close()">Vazgeç</button>
+              <div class="form-actions">
+                <button class="btn btn--ghost" type="submit" data-cancel="1" formnovalidate formmethod="dialog">Vazgeç</button>
                 <button class="btn" value="submit" type="submit">Ekle</button>
               </div>
             </form>
@@ -329,411 +285,7 @@
       </main>
     </div>
     <script src="../session.js"></script>
-    <script>
-      window.addEventListener('DOMContentLoaded', ()=>{
-        const user = window.MockAuth?.enforceAccess({ allow: ['manager','admin'] });
-        if (user) window.MockAuth.applyRoleUI(user);
-        const btn = document.getElementById('btn-logout');
-        if (btn && !btn.dataset.bound){
-          btn.dataset.bound = '1';
-          btn.addEventListener('click', ()=>{
-            window.MockAuth?.clearSession();
-            location.href = '../index.html';
-          });
-        }
-      });
-    </script>
-    <script>
-  (function(){
-    const $ = (s,ctx=document)=>ctx.querySelector(s);
-
-    // Render helpers
-    function renderStats(stats){
-      const cards = document.querySelectorAll('#view-stok .cards .card .card__value');
-      if(cards[0]) cards[0].textContent = stats.total_skus ?? '-';
-      if(cards[1]) cards[1].textContent = stats.in_stock_pct != null ? '%' + stats.in_stock_pct : '-';
-      if(cards[2]) cards[2].textContent = stats.critical ?? '-';
-      if(cards[3]) cards[3].textContent = stats.open_pos ?? '-';
-    }
-    function renderReorder(rows){
-      const tbody = $('#reorderTable');
-      if(!tbody) return;
-      tbody.innerHTML = (rows||[]).map(r=>`
-        <tr>
-          <td>\${r.sku_id || r.sku}</td>
-          <td>\${r.item || r.name}</td>
-          <td>\${r.on_hand ?? ''}</td>
-          <td>\${r.min_qty ?? ''}</td>
-          <td>\${r.supplier ?? ''}</td>
-          <td>
-            <span class="badge \${r.status==='Kritik' ? 'badge--warn' : (r.status==='Uygun' ? 'badge--ok':'')}">\${r.status ?? ''}</span>
-          </td>
-        </tr>`).join('');
-    }
-    function renderHistory(items){
-      const ul = $('#historyList');
-      if(!ul) return;
-      ul.innerHTML = (items||[]).map(i=>`
-        <li>
-          <span class="dot" aria-hidden="true"></span>
-          <div>
-            <div>\${i.text}</div>
-            <div class="meta">\${i.t}</div>
-          </div>
-        </li>`).join('');
-    }
-    function renderPlanned(grouped){
-      const map = {soon: '[data-col="soon"]', month: '[data-col="month"]', backlog: '[data-col="backlog"]'};
-      Object.keys(map).forEach(k=>{
-        const ul = document.querySelector('#view-planlanan ' + map[k]);
-        if(ul) ul.innerHTML = (grouped?.[k]||[]).map(t=>`<li class="kanban__item">\${t}</li>`).join('');
-      });
-    }
-    function renderJobs(items){
-      const grid = $('#jobsGrid');
-      if(!grid) return;
-      grid.innerHTML = (items||[]).map(j=>`
-        <article class="job">
-          <header class="job__head">
-            <strong>\${j.id}</strong>
-            <span class="badge \${j.status==='Riskli' ? 'badge--warn' : 'badge--ok'}">\${j.status}</span>
-          </header>
-          <div class="job__title">\${j.title}</div>
-          <div class="job__meta"><span>Sorumlu: \${j.owner ?? '-'}</span><span>ETA: \${j.eta ?? '-'}</span></div>
-        </article>`).join('');
-    }
-
-    async function getJSON(url){
-      const r = await fetch(url);
-      if(!r.ok) throw new Error(await r.text());
-      return r.json();
-    }
-    async function postJSON(url, body){
-      const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-      if(!r.ok) throw new Error(await r.text());
-      return r.json().catch(()=> ({}));
-    }
-
-    async function refreshAll(){
-      try { renderStats(await getJSON('/api/stats')); } catch(e){ console.warn('stats', e); }
-      try { renderReorder(await getJSON('/api/reorder')); } catch(e){ console.warn('reorder', e); }
-      try { renderHistory(await getJSON('/api/history')); } catch(e){ console.warn('history', e); }
-      try { renderPlanned(await getJSON('/api/planned')); } catch(e){ console.warn('planned', e); }
-      try { renderJobs(await getJSON('/api/jobs')); } catch(e){ console.warn('jobs', e); }
-    }
-
-    // ---- Alerts (Bildirimler) -------------------------------------------------
-    function renderAlerts(rows){
-      const tb = document.getElementById('alertsTable');
-      if (!tb) return;
-      tb.innerHTML = (rows && rows.length) ? rows.map(r => `
-        <tr>
-          <td>${r.company || '-'}</td>
-          <td>${r.product || '-'}</td>
-          <td>${r.days}</td>
-          <td>${r.last || '-'}</td>
-          <td>${r.level}</td>
-        </tr>`).join('') : `<tr><td colspan="5" class="muted">Uyarı bulunmuyor.</td></tr>`;
-    }
-
-    function daysBetween(d){
-      const ms = Date.now() - new Date(String(d).replace(' ', 'T')).getTime();
-      return Math.max(0, Math.floor(ms / (1000*60*60*24)));
-    }
-
-    function parseCompanyProduct(text){
-      if (!text) return { company: '', product: '' };
-      const t = String(text).trim();
-      const mC = t.match(/(?:Şirket|Firma|Company)\s*:\s*([^\-|•|\|]+)/i);
-      const mP = t.match(/(?:Ürün|Product)\s*:\s*([^\-|•|\|]+)/i);
-      if (mC || mP){
-        return { company: (mC?.[1]||'').trim(), product: (mP?.[1]||'').trim() };
-      }
-      const parts = t.split(/\s*[•\-|—]\s*/).map(s => s.trim()).filter(Boolean);
-      if (parts.length >= 2){ return { company: parts[0], product: parts[1] }; }
-      return { company: parts[0] || t, product: '' };
-    }
-
-    function levelFromDays(d){
-      if (d >= 150) return '150+ gün';
-      if (d >= 120) return '120+ gün';
-      if (d >= 90)  return '90+ gün';
-      if (d >= 60)  return '60+ gün';
-      if (d >= 30)  return '30+ gün';
-      return '';
-    }
-
-    function buildAlertsFromHistory(history){
-      if (!Array.isArray(history)) return [];
-      const lastMap = new Map();
-      for (const item of history){
-        const { company, product } = parseCompanyProduct(item.text);
-        const key = `${company || '?'}|${product || '?'}`;
-        const last = item.t;
-        if (!lastMap.has(key) || new Date(String(last).replace(' ','T')) > new Date(String(lastMap.get(key).last).replace(' ','T'))){
-          lastMap.set(key, { company, product, last });
-        }
-      }
-      const rows = [];
-      for (const v of lastMap.values()){
-        const d = daysBetween(v.last);
-        const lvl = levelFromDays(d);
-        if (!lvl) continue;
-        rows.push({ company: v.company, product: v.product, days: d, last: v.last, level: lvl });
-      }
-      rows.sort((a,b)=> b.days - a.days);
-      return rows;
-    }
-
-    async function refreshAlerts(){
-      try{
-        const hist = await getJSON('/api/history');
-        renderAlerts(buildAlertsFromHistory(hist));
-      }catch(e){ console.warn('alerts', e); }
-    }
-
-    // ---- Geçmiş için sıralama helper ---------------------------------------
-    function applyHistorySort(list, fd){
-      const by  = (fd.get('sort_by')  || 'date').toString();
-      const dir = (fd.get('sort_dir') || 'desc').toString();
-      const sign = dir === 'asc' ? 1 : -1;
-      const parseDate = (s) => { if (!s) return 0; const d = new Date(String(s).replace(' ', 'T')); return d.getTime() || 0; };
-      const parsePrice = (txt) => {
-        if (!txt) return 0;
-        const m = String(txt).match(/([0-9]{1,3}(?:[\.\s][0-9]{3})*(?:,[0-9]+)?|[0-9]+(?:\.[0-9]+)?)/);
-        if (!m) return 0;
-        let n = m[1].replace(/\s/g,'');
-        if (/,/.test(n) && /\./.test(n)) { n = n.replace(/\./g, '').replace(',', '.'); }
-        else if (/,/.test(n)) { n = n.replace(',', '.'); }
-        else { n = n.replace(/\./g, ''); }
-        const v = parseFloat(n);
-        return isNaN(v) ? 0 : v;
-      };
-      const getProductKey = (txt) => String(txt||'').toLocaleLowerCase('tr-TR');
-      const arr = Array.isArray(list) ? list.slice() : [];
-      arr.sort((a,b)=>{
-        if (by === 'date')  return (parseDate(a.t)   - parseDate(b.t))   * sign;
-        if (by === 'price') return (parsePrice(a.text) - parsePrice(b.text)) * sign;
-        if (by === 'product'){
-          const aa = getProductKey(a.text), bb = getProductKey(b.text);
-          return (aa < bb ? -1 : aa > bb ? 1 : 0) * sign;
-        }
-        return 0;
-      });
-      return arr;
-    }
-
-    // Export CSV for reorder table
-    function exportReorderCSV(){
-      const rows = Array.from(document.querySelectorAll('#reorderTable tr')).map(tr =>
-        Array.from(tr.children).map(td => '"' + (td.textContent||'').replaceAll('"','""') + '"').join(',')
-      );
-      const csv = ['SKU,Ürün,Elde,Asgari,Tedarikçi,Durum'].concat(rows).join('\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'reorder.csv';
-      document.body.appendChild(a); a.click(); a.remove();
-    }
-
-    // Modals
-    const dlgAdd = $('#dlg-add-sku');
-    const dlgPlan = $('#dlg-new-plan');
-
-    document.addEventListener('click', (e)=>{
-      if(e.target.id === 'btn-export') exportReorderCSV();
-      if(e.target.id === 'btn-add-sku' && dlgAdd?.showModal) dlgAdd.showModal();
-    });
-
-    // Ürün ekle formu
-    const formAdd = $('#form-add-sku');
-    formAdd?.addEventListener('submit', async (e)=>{
-      if (e.submitter?.dataset?.cancel) { return; } // native dialog close
-      e.preventDefault();
-      const fd = new FormData(formAdd);
-      const payload = {
-        sku_id: fd.get('sku_id')?.trim(),
-        name: fd.get('name')?.trim(),
-        min_qty: Number(fd.get('min_qty')||0),
-        supplier: fd.get('supplier')?.trim() || null,
-        initial_qty: fd.get('initial_qty') ? Number(fd.get('initial_qty')) : 0
-      };
-      try {
-        await postJSON('/api/skus', payload);
-        dlgAdd?.close();
-        await refreshAll();
-      } catch(err){
-        alert('Hata: ' + err.message);
-      }
-    });
-
-    // "Yeni Plan" butonu (Planlanan panelindeki)
-    document.getElementById('btn-new-plan')?.addEventListener('click', ()=>{
-      if(dlgPlan?.showModal) dlgPlan.showModal();
-    });
-    const formPlan = $('#form-new-plan');
-    formPlan?.addEventListener('submit', async (e)=>{
-      if (e.submitter?.dataset?.cancel) { return; } // native dialog close
-      e.preventDefault();
-      const fd = new FormData(formPlan);
-      const payload = { title: fd.get('title')?.trim(), bucket: fd.get('bucket') };
-      try {
-        await postJSON('/api/planned', payload);
-        dlgPlan?.close();
-        await refreshAll();
-      } catch(err){
-        alert('Hata: ' + err.message);
-      }
-    });
-
-    // Geçmiş filtre çubuğu
-    const btnFilter = $('#btn-history-filter');
-    const bar = $('#historyFilterBar');
-    btnFilter?.addEventListener('click', ()=> {
-      if(!bar) return;
-      bar.style.display = (bar.style.display==='none' || !bar.style.display) ? 'block' : 'none';
-    });
-    $('#btn-history-clear')?.addEventListener('click', async ()=>{
-      document.getElementById('historyFilterForm').reset();
-      const base = await getJSON('/api/history');
-      renderHistory(applyHistorySort(base, new FormData(document.getElementById('historyFilterForm'))));
-    });
-    $('#historyFilterForm')?.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const fd = new FormData(e.currentTarget);
-      const params = new URLSearchParams();
-      for(const [k,v] of fd.entries()){ if(v) params.append(k, v); }
-      try{
-        // Tercih edilen: sunucuda /api/history/search
-        const url = '/api/history/search?' + params.toString();
-        const r = await fetch(url);
-        if(r.ok){
-          const data = await r.json();
-          renderHistory(applyHistorySort(data, fd));
-        } else {
-          // Geriye dönüş: /api/history al ve istemci tarafı filtre uygula
-          const base = await getJSON('/api/history');
-          const company = (fd.get('company')||'').toString().toLowerCase();
-          const item = (fd.get('item')||'').toString().toLowerCase();
-          const from = fd.get('from') ? new Date(fd.get('from')+'T00:00:00') : null;
-          const to   = fd.get('to')   ? new Date(fd.get('to')  +'T23:59:59') : null;
-          const filtered = base.filter(x=>{
-            const text = (x.text||'').toLowerCase();
-            const okCompany = !company || text.includes(company);
-            const okItem = !item || text.includes(item);
-            const t = new Date(x.t.replace(' ', 'T'));
-            const okFrom = !from || t >= from;
-            const okTo = !to || t <= to;
-            return okCompany && okItem && okFrom && okTo;
-          });
-          renderHistory(applyHistorySort(filtered, fd));
-        }
-      }catch(err){ alert('Hata: ' + err.message); }
-    });
-
-    // ================= Kullanıcı Onayları (localStorage) ====================
-    function lsGet(key, def){
-      try{ const v = JSON.parse(localStorage.getItem(key)||'null'); return (v==null?def:v); }catch{ return def; }
-    }
-    function lsSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} }
-
-    function getPending(){ return Array.isArray(lsGet('pending_users', [])) ? lsGet('pending_users', []) : []; }
-    function setPending(arr){ lsSet('pending_users', Array.isArray(arr)?arr:[]); }
-    function getUsersLS(){ return Array.isArray(lsGet('users', [])) ? lsGet('users', []) : []; }
-    function setUsersLS(arr){ lsSet('users', Array.isArray(arr)?arr:[]); }
-
-    function renderPendingTable(q=''){
-      const tb = document.getElementById('pendingTable'); if(!tb) return;
-      const rows = getPending();
-      const qq = (q||'').toLowerCase();
-      const data = qq ? rows.filter(r =>
-        String(r.fullname||'').toLowerCase().includes(qq) ||
-        String(r.email||'').toLowerCase().includes(qq) ||
-        String(r.phone||'').toLowerCase().includes(qq)
-      ) : rows;
-      tb.innerHTML = data.length ? data.map(r=>`
-        <tr>
-          <td>${r.fullname||'-'}</td>
-          <td>${r.email||'-'}</td>
-          <td>${r.phone||'-'}</td>
-          <td>${(r.createdAt||'').replace('T',' ').replace('Z','')}</td>
-          <td style="text-align:right">
-            <button class="btn" data-approve="${r.email}">Onayla</button>
-            <button class="btn btn--ghost" data-reject="${r.email}">Reddet</button>
-          </td>
-        </tr>`).join('') : `<tr><td colspan="5" class="muted">${qq? 'Eşleşen başvuru yok.' : 'Bekleyen başvuru yok.'}</td></tr>`;
-    }
-
-    function renderUsersTable(q=''){
-      const tb = document.getElementById('usersTable'); if(!tb) return;
-      const users = getUsersLS();
-      const qq = (q||'').toLowerCase();
-      const data = qq ? users.filter(u =>
-        String(u.email||'').toLowerCase().includes(qq) ||
-        String(u.role||'').toLowerCase().includes(qq)
-      ) : users;
-      tb.innerHTML = data.length ? data.map(u=>`
-        <tr>
-          <td>${u.email}</td>
-          <td>${u.role||'viewer'}</td>
-          <td style="text-align:right">
-            <button class="btn btn--ghost" data-remove="${u.email}">Sil/Çıkar</button>
-          </td>
-        </tr>`).join('') : `<tr><td colspan="3" class="muted">${qq? 'Eşleşen kullanıcı yok.' : 'Kayıtlı kullanıcı yok.'}</td></tr>`;
-    }
-
-    function refreshUsersUI(){
-      const q = (document.getElementById('userSearch')?.value || '').trim();
-      renderPendingTable(q);
-      renderUsersTable(q);
-    }
-
-    // Delegated click handlers for approve/reject/remove
-    document.addEventListener('click', (e)=>{
-      const t = e.target;
-      if (!(t instanceof HTMLElement)) return;
-      const emailApprove = t.getAttribute('data-approve');
-      const emailReject  = t.getAttribute('data-reject');
-      const emailRemove  = t.getAttribute('data-remove');
-      if (emailApprove){
-        // Move from pending to users (default role viewer)
-        const pending = getPending();
-        const idx = pending.findIndex(x=> (x.email||'').toLowerCase() === emailApprove.toLowerCase());
-        if (idx>=0){
-          const p = pending[idx]; pending.splice(idx,1); setPending(pending);
-          const users = getUsersLS();
-          if (!users.some(u=> (u.email||'').toLowerCase() === (p.email||'').toLowerCase())){
-            users.push({ email:p.email, password:p.password, role: 'viewer' });
-            setUsersLS(users);
-          }
-          refreshUsersUI();
-          alert('Kullanıcı onaylandı.');
-        }
-      }
-      if (emailReject){
-        const pending = getPending().filter(x=> (x.email||'').toLowerCase() !== emailReject.toLowerCase());
-        setPending(pending); refreshUsersUI(); alert('Başvuru reddedildi.');
-      }
-      if (emailRemove){
-        const users = getUsersLS().filter(x=> (x.email||'').toLowerCase() !== emailRemove.toLowerCase());
-        setUsersLS(users); refreshUsersUI(); alert('Kullanıcı silindi.');
-      }
-    });
-
-    document.getElementById('btn-refresh-users')?.addEventListener('click', refreshUsersUI);
-
-    // Arama kutusu: yazdıkça filtrele (debounce)
-    function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
-    const userSearchEl = document.getElementById('userSearch');
-    if (userSearchEl){
-      const onType = debounce(()=> refreshUsersUI(), 150);
-      userSearchEl.addEventListener('input', onType);
-    }
-
-    // İlk yükleme
-    document.addEventListener('DOMContentLoaded', ()=>{ refreshAll(); refreshUsersUI(); refreshAlerts(); });
-    if (document.readyState !== 'loading'){ refreshAll(); refreshUsersUI(); refreshAlerts(); }
-  })();
-  </script>
+    <script src="../shared.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>
